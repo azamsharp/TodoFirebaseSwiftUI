@@ -36,9 +36,30 @@ struct ContentView: View {
             if let snapshot = snapshot {
                 
                 self.tasks = snapshot.documents.map { doc in
-                    return ["title": doc.data()["title"] as! String]
+                    return ["title": doc.data()["title"] as! String,
+                            "documentId": doc.documentID
+                    ]
                 }
                 
+            }
+            
+        }
+        
+    }
+    
+    private func deleteTask(at indexSet: IndexSet) {
+        
+        indexSet.forEach { index in
+            
+            let task = self.tasks[index]
+            
+            db.collection("tasks").document(task["documentId"]!).delete() { error in
+                
+                if let error = error {
+                    print(error.localizedDescription)
+                } else {
+                    self.populateTasks()
+                }
             }
             
         }
@@ -51,8 +72,15 @@ struct ContentView: View {
                 self.saveTask()
                 }).textFieldStyle(RoundedBorderTextFieldStyle())
            
-            List(tasks, id: \.self) { task in
-                Text(task["title"] ?? "")
+            List {
+                
+                ForEach(tasks, id: \.self) { task in
+                    NavigationLink(destination: TodoDetailView(task: task)) {
+                    Text(task["title"] ?? "")
+                    }
+                    
+                }.onDelete(perform: self.deleteTask)
+                
             }
             
             Spacer()
@@ -61,6 +89,8 @@ struct ContentView: View {
             .onAppear {
                 self.populateTasks()
         }
+        .navigationBarTitle("Tasks")
+        .embedInNavigationView()
     }
 }
 
